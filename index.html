@@ -128,7 +128,7 @@ async function auth(mode){
   if(!r.data.session){toast('Cek email untuk konfirmasi');return}
   user=r.data.user;await pull();render();toast('Masuk!')}
 if(sb)sb.auth.getSession().then(function(r){user=r.data.session?r.data.session.user:null;if(user)pull().then(render)});
-var tab='home',addType='out';
+var tab='home',addType='out',editId=null,draft=null;
 var today=new Date().toISOString().slice(0,10);
 var ym=today.slice(0,7);
 
@@ -157,17 +157,24 @@ function home(){
   h+='<h2>Riwayat</h2>';
   if(!l.length)h+='<div class="empty">Kosong.</div>';
   l.slice().sort(function(a,b){return b.date.localeCompare(a.date)||b.id.localeCompare(a.id)}).forEach(function(t){var k=cat(t.cat);
-    h+='<div class="card"><div class="item"><div class="ic">'+esc(k.emoji)+'</div><div class="n">'+esc(t.note||k.name)+'<small>'+esc(k.name)+' · '+t.date.slice(8)+'/'+t.date.slice(5,7)+'</small></div><div class="amt '+t.type+'">'+(t.type==='in'?'+':'−')+rp(t.amt)+'</div><button class="btn sm" data-a="del" data-id="'+t.id+'" aria-label="Hapus">✕</button></div></div>'});
+    h+='<div class="card"><div class="item"><div class="ic">'+esc(k.emoji)+'</div><div class="n">'+esc(t.note||k.name)+'<small>'+esc(k.name)+' · '+t.date.slice(8)+'/'+t.date.slice(5,7)+'</small></div><div class="amt '+t.type+'">'+(t.type==='in'?'+':'−')+rp(t.amt)+'</div><div style="display:flex;gap:6px"><button class="btn sm" data-a="edit" data-id="'+t.id+'" aria-label="Edit">✎</button><button class="btn sm" data-a="del" data-id="'+t.id+'" aria-label="Hapus">✕</button></div></div></div>'});
   return h}
 
 function add(){
-  var opts=S.cats.filter(function(c){return c.type===addType}).map(function(c){return '<option value="'+c.id+'">'+esc(c.emoji+' '+c.name)+'</option>'}).join('');
-  return '<h2>Catat transaksi</h2><div class="seg"><button class="btn o'+(addType==='out'?' on':'')+'" data-a="type" data-v="out">Pengeluaran</button><button class="btn i'+(addType==='in'?' on':'')+'" data-a="type" data-v="in">Pemasukan</button></div>'
-  +'<form id="f"><label>Jumlah (Rp)</label><input id="amt" type="number" inputmode="numeric" min="1" required placeholder="25000">'
+  var e=editId?S.tx.find(function(x){return x.id===editId}):null;
+  var d=draft||(e?{amt:e.amt,cat:e.cat,note:e.note,date:e.date}:{amt:'',cat:'',note:'',date:today});
+  var av=d.amt===''?'':(typeof d.amt==='number'?d.amt.toLocaleString('id-ID'):d.amt);
+  var opts=S.cats.filter(function(c){return c.type===addType}).map(function(c){return '<option value="'+c.id+'"'+(c.id===d.cat?' selected':'')+'>'+esc(c.emoji+' '+c.name)+'</option>'}).join('');
+  return '<h2>'+(e?'Edit transaksi':'Catat transaksi')+'</h2><div class="seg"><button class="btn o'+(addType==='out'?' on':'')+'" data-a="type" data-v="out">Pengeluaran</button><button class="btn i'+(addType==='in'?' on':'')+'" data-a="type" data-v="in">Pemasukan</button></div>'
+  +'<form id="f"><label>Jumlah (Rp)</label><input id="amt" type="text" inputmode="numeric" data-money required placeholder="25.000" value="'+av+'">'
   +'<label>Kategori</label><select id="cat">'+(opts||'<option value="">Buat kategori dulu</option>')+'</select>'
-  +'<label>Catatan (opsional)</label><input id="note" maxlength="60" placeholder="Nasi goreng">'
-  +'<label>Tanggal</label><input id="date" type="date" value="'+today+'" required>'
-  +'<div style="margin-top:18px"><button class="btn red" style="width:100%" type="submit">Simpan</button></div></form>'}
+  +'<label>Catatan (opsional)</label><input id="note" maxlength="60" placeholder="Nasi goreng" value="'+esc(d.note)+'">'
+  +'<label>Tanggal</label><input id="date" type="date" value="'+d.date+'" required>'
+  +'<div style="margin-top:18px"><button class="btn red" style="width:100%" type="submit">'+(e?'Simpan perubahan':'Simpan')+'</button></div>'
+  +(e?'<div style="margin-top:12px"><button class="btn" style="width:100%" type="button" data-a="cancel">Batal</button></div>':'')+'</form>'}
+
+function capDraft(){var f=document.getElementById('f');if(f)draft={amt:document.getElementById('amt').value,cat:document.getElementById('cat').value,note:document.getElementById('note').value,date:document.getElementById('date').value}}
+function num(v){var x=+String(v).replace(/\D/g,'')||0;return /^\s*-/.test(v)?-x:x}
 
 function extraCharts(l){
   var p=ym.split('-'),days=new Date(+p[0],+p[1],0).getDate(),first=ym+'-01',h='',d;
@@ -217,7 +224,7 @@ function cats(){
   return h+'<h2>Data</h2><button class="btn" data-a="export" style="width:100%">Unduh cadangan (JSON)</button>'}
 
 function profile(){
-  var h='<h2>Nama dompet</h2><form id="nf"><input id="wn" maxlength="24" value="'+esc(S.name)+'" required><div style="margin-top:14px"><button class="btn red" style="width:100%" type="submit">Simpan nama</button></div></form><h2>Saldo awal</h2><form id="sf"><input id="sa" type="number" inputmode="decimal" value="'+(+S.start||0)+'" required><div style="margin-top:14px"><button class="btn red" style="width:100%" type="submit">Simpan saldo awal</button></div></form><h2>Akun</h2>';
+  var h='<h2>Nama dompet</h2><form id="nf"><input id="wn" maxlength="24" value="'+esc(S.name)+'" required><div style="margin-top:14px"><button class="btn red" style="width:100%" type="submit">Simpan nama</button></div></form><h2>Saldo awal</h2><form id="sf"><input id="sa" type="text" inputmode="numeric" data-money="neg" value="'+(+S.start||0).toLocaleString('id-ID')+'" required><div style="margin-top:14px"><button class="btn red" style="width:100%" type="submit">Simpan saldo awal</button></div></form><h2>Akun</h2>';
   if(!sb)h+='<div class="card"><div class="n">Database belum tersambung<small style="white-space:normal">Isi CFG.url dan CFG.key di index.html (lihat panduan Supabase). Sementara data hanya tersimpan di perangkat ini.</small></div></div>';
   else if(user)h+='<div class="card"><div class="item"><div class="ic">☺</div><div class="n">'+esc(user.email)+'<small>Masuk · data otomatis tersimpan ke database</small></div></div></div><div class="seg"><button class="btn" data-a="sync">Sinkron</button><button class="btn" data-a="logout">Keluar</button></div>';
   else h+='<form id="lf"><label>Email</label><input id="em" type="email" autocomplete="email" required><label>Sandi</label><input id="pw" type="password" autocomplete="current-password" minlength="6" required><div class="seg" style="margin-top:14px"><button class="btn red" type="submit">Masuk</button><button class="btn" type="button" data-a="signup">Daftar</button></div></form>';
@@ -240,30 +247,39 @@ function render(){
   var f=document.getElementById('f');if(f)f.onsubmit=function(e){e.preventDefault();
     var c=document.getElementById('cat').value;if(!c){toast('Pilih kategori!');return}
     var d=document.getElementById('date').value;
-    S.tx.push({id:Date.now().toString(36),type:addType,amt:+document.getElementById('amt').value,cat:c,note:document.getElementById('note').value.trim(),date:d});
-    save();ym=d.slice(0,7);tab='home';render();toast('Tersimpan!')};
+    var am=num(document.getElementById('amt').value);if(am<=0){toast('Isi jumlah!');return}
+    var nt=document.getElementById('note').value.trim();
+    if(editId){var t=S.tx.find(function(x){return x.id===editId});if(t){t.type=addType;t.amt=am;t.cat=c;t.note=nt;t.date=d}}
+    else S.tx.push({id:Date.now().toString(36),type:addType,amt:am,cat:c,note:nt,date:d});
+    var was=editId;editId=null;draft=null;
+    save();ym=d.slice(0,7);tab='home';render();toast(was?'Perubahan disimpan!':'Tersimpan!')};
   var cf=document.getElementById('cf');if(cf)cf.onsubmit=function(e){e.preventDefault();
     S.cats.push({id:'c'+Date.now().toString(36),name:document.getElementById('cn').value.trim(),emoji:document.getElementById('ce').value.trim(),type:document.getElementById('ct').value});
     save();render();toast('Kategori ditambah!')};
   var nf=document.getElementById('nf');if(nf)nf.onsubmit=function(e){e.preventDefault();S.name=document.getElementById('wn').value.trim()||'Dompet Manga';save();render();toast('Nama disimpan!')};
-  var sf=document.getElementById('sf');if(sf)sf.onsubmit=function(e){e.preventDefault();S.start=+document.getElementById('sa').value||0;save();render();toast('Saldo awal disimpan!')};
+  var sf=document.getElementById('sf');if(sf)sf.onsubmit=function(e){e.preventDefault();S.start=num(document.getElementById('sa').value);save();render();toast('Saldo awal disimpan!')};
   var lf=document.getElementById('lf');if(lf)lf.onsubmit=function(e){e.preventDefault();auth('in')}}
 
 document.addEventListener('click',function(e){
   var el=e.target.closest('[data-a]');if(!el)return;var a=el.dataset.a;
-  if(a==='tab'){tab=el.dataset.v;window.scrollTo(0,0)}
-  else if(a==='type')addType=el.dataset.v;
+  if(a==='tab'){tab=el.dataset.v;editId=null;draft=null;window.scrollTo(0,0)}
+  else if(a==='type'){capDraft();addType=el.dataset.v}
   else if(a==='prev')ym=shift(ym,-1);
   else if(a==='next')ym=shift(ym,1);
   else if(a==='del'){if(!confirm('Hapus transaksi ini?'))return;S.tx=S.tx.filter(function(t){return t.id!==el.dataset.id});save()}
   else if(a==='delcat'){var id=el.dataset.id;
     if(S.tx.some(function(t){return t.cat===id})){toast('Masih dipakai transaksi!');return}
     S.cats=S.cats.filter(function(c){return c.id!==id});save()}
+  else if(a==='edit'){var tx=S.tx.find(function(x){return x.id===el.dataset.id});if(!tx)return;editId=tx.id;addType=tx.type;draft=null;tab='add';window.scrollTo(0,0)}
+  else if(a==='cancel'){editId=null;draft=null;tab='home'}
   else if(a==='signup'){auth('up');return}
   else if(a==='logout'){sb.auth.signOut().then(function(){user=null;syncMsg='';render();toast('Keluar')});return}
   else if(a==='sync'){push();return}
   else if(a==='export'){var u=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'})),k=document.createElement('a');k.href=u;k.download='dompet-manga.json';k.click();return}
   render()});
+document.addEventListener('input',function(e){var el=e.target;if(el.dataset&&el.dataset.money!==undefined){
+  var v=el.value,neg=el.dataset.money==='neg'&&/^\s*-/.test(v),dg=v.replace(/\D/g,'').slice(0,12);
+  el.value=(neg?'-':'')+(dg?(+dg).toLocaleString('id-ID'):'')}});
 document.addEventListener('pointerdown',function(e){
   var el=e.target.closest('.btn,nav button');if(!el)return;
   var r=el.getBoundingClientRect(),d=Math.max(r.width,r.height)*2,sp=document.createElement('span');
