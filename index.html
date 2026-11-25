@@ -105,7 +105,7 @@ try{var raw=localStorage.getItem(KEY);if(raw)S=JSON.parse(raw)}catch(e){}
 if(!S.name)S.name='Dompet Manga';
 
 /* ===== DATABASE (Supabase) — isi 2 baris ini, lihat panduan SQL ===== */
-var CFG={url:'',key:''};
+var CFG={url:'https://xgfiwkpnrcawdbrfnsqf.supabase.co',key:'PASTE-PUBLISHABLE-KEY'};
 var sb=(window.supabase&&CFG.url&&CFG.key)?supabase.createClient(CFG.url,CFG.key):null;
 var user=null,syncMsg='',st;
 function localSave(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
