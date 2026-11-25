@@ -105,7 +105,7 @@ try{var raw=localStorage.getItem(KEY);if(raw)S=JSON.parse(raw)}catch(e){}
 if(!S.name)S.name='Dompet Manga';
 
 /* ===== DATABASE (Supabase) — isi 2 baris ini, lihat panduan SQL ===== */
-var CFG={url:'https://xgfiwkpnrcawdbrfnsqf.supabase.co',key:'PASTE-PUBLISHABLE-KEY'};
+var CFG={url:'https://xgfiwkpnrcawdbrfnsqf.supabase.co',key:'sb_publishable_fsh_hUXwkH63yVnrOAPTTg_VyVi8gsU'};
 var sb=(window.supabase&&CFG.url&&CFG.key)?supabase.createClient(CFG.url,CFG.key):null;
 var user=null,syncMsg='',st;
 function localSave(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
@@ -227,7 +227,7 @@ function profile(){
   var h='<h2>Nama dompet</h2><form id="nf"><input id="wn" maxlength="24" value="'+esc(S.name)+'" required><div style="margin-top:14px"><button class="btn red" style="width:100%" type="submit">Simpan nama</button></div></form><h2>Saldo awal</h2><form id="sf"><input id="sa" type="text" inputmode="numeric" data-money="neg" value="'+(+S.start||0).toLocaleString('id-ID')+'" required><div style="margin-top:14px"><button class="btn red" style="width:100%" type="submit">Simpan saldo awal</button></div></form><h2>Akun</h2>';
   if(!sb)h+='<div class="card"><div class="n">Database belum tersambung<small style="white-space:normal">Isi CFG.url dan CFG.key di index.html (lihat panduan Supabase). Sementara data hanya tersimpan di perangkat ini.</small></div></div>';
   else if(user)h+='<div class="card"><div class="item"><div class="ic">☺</div><div class="n">'+esc(user.email)+'<small>Masuk · data otomatis tersimpan ke database</small></div></div></div><div class="seg"><button class="btn" data-a="sync">Sinkron</button><button class="btn" data-a="logout">Keluar</button></div>';
-  else h+='<form id="lf"><label>Email</label><input id="em" type="email" autocomplete="email" required><label>Sandi</label><input id="pw" type="password" autocomplete="current-password" minlength="6" required><div class="seg" style="margin-top:14px"><button class="btn red" type="submit">Masuk</button><button class="btn" type="button" data-a="signup">Daftar</button></div></form>';
+  else h+='<button class="btn" type="button" data-a="google" style="width:100%">Masuk dengan Google</button><div class="msg" style="text-align:center">atau pakai email</div><form id="lf"><label>Email</label><input id="em" type="email" autocomplete="email" required><label>Sandi</label><input id="pw" type="password" autocomplete="current-password" minlength="6" required><div class="seg" style="margin-top:14px"><button class="btn red" type="submit">Masuk</button><button class="btn" type="button" data-a="signup">Daftar</button></div></form>';
   if(syncMsg)h+='<div class="msg">'+esc(syncMsg)+'</div>';
   return h}
 
@@ -272,6 +272,7 @@ document.addEventListener('click',function(e){
     S.cats=S.cats.filter(function(c){return c.id!==id});save()}
   else if(a==='edit'){var tx=S.tx.find(function(x){return x.id===el.dataset.id});if(!tx)return;editId=tx.id;addType=tx.type;draft=null;tab='add';window.scrollTo(0,0)}
   else if(a==='cancel'){editId=null;draft=null;tab='home'}
+  else if(a==='google'){sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}});return}
   else if(a==='signup'){auth('up');return}
   else if(a==='logout'){sb.auth.signOut().then(function(){user=null;syncMsg='';render();toast('Keluar')});return}
   else if(a==='sync'){push();return}
